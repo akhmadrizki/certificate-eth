@@ -1,0 +1,339 @@
+{
+	"compiler": {
+		"version": "0.8.30+commit.73712a01"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "certificateId",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "recipientName",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "issueDate",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "expiredDate",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "issuer",
+						"type": "address"
+					}
+				],
+				"name": "CertificateIssued",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "certificateId",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "enum CertificateManager.CertificateStatus",
+						"name": "newStatus",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "updater",
+						"type": "address"
+					}
+				],
+				"name": "CertificateStatusUpdated",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_recipientName",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_nonce",
+						"type": "string"
+					}
+				],
+				"name": "generateCertificateId",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "pure",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_certificateId",
+						"type": "bytes32"
+					}
+				],
+				"name": "getCertificate",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "issueDate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum CertificateManager.CertificateStatus",
+						"name": "status",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expiredDate",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_certificateId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "string",
+						"name": "_title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_recipientName",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_expiredDate",
+						"type": "uint256"
+					}
+				],
+				"name": "issueCertificate",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_certificateId",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "enum CertificateManager.CertificateStatus",
+						"name": "_newStatus",
+						"type": "uint8"
+					}
+				],
+				"name": "updateCertificateStatus",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "_certificateId",
+						"type": "bytes32"
+					}
+				],
+				"name": "verifyCertificate",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "issueDate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum CertificateManager.CertificateStatus",
+						"name": "status",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expiredDate",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isValid",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"generateCertificateId(string,string)": {
+					"details": "Membuat ID unik dari nama penerima dan string acak (nonce)",
+					"params": {
+						"_nonce": "String unik/acak untuk mencegah duplikasi.",
+						"_recipientName": "Nama penerima sertifikat."
+					},
+					"returns": {
+						"_0": "bytes32 ID sertifikat yang di-hash."
+					}
+				},
+				"getCertificate(bytes32)": {
+					"details": "Mendapatkan data sertifikat lengkap berdasarkan ID. (Fungsi READ ONLY)",
+					"params": {
+						"_certificateId": "ID sertifikat."
+					},
+					"returns": {
+						"expiredDate": "Tanggal kadaluarsa.",
+						"issueDate": "Tanggal diterbitkan.",
+						"name": "Nama penerima.",
+						"status": "Status sertifikat.",
+						"title": "Judul sertifikat."
+					}
+				},
+				"issueCertificate(bytes32,string,string,uint256)": {
+					"details": "Menerbitkan dan menyimpan sertifikat baru ke dalam blockchain.",
+					"params": {
+						"_certificateId": "ID sertifikat unik yang dihasilkan dari fungsi di atas.",
+						"_expiredDate": "Tanggal kadaluarsa sertifikat (timestamp).",
+						"_recipientName": "Nama penerima.",
+						"_title": "Judul sertifikat (contoh: \"Workshop HTML\")."
+					}
+				},
+				"updateCertificateStatus(bytes32,uint8)": {
+					"details": "Mengubah status sertifikat (hanya owner yang bisa).",
+					"params": {
+						"_certificateId": "ID sertifikat yang akan diubah statusnya.",
+						"_newStatus": "Status baru (Publish atau Revoke)."
+					}
+				},
+				"verifyCertificate(bytes32)": {
+					"details": "Memverifikasi keberadaan sertifikat dan mengembalikan data lengkap. (Fungsi READ ONLY)",
+					"params": {
+						"_certificateId": "ID sertifikat yang akan diverifikasi."
+					},
+					"returns": {
+						"expiredDate": "Tanggal kadaluarsa.",
+						"isValid": "True jika sertifikat valid dan belum kadaluarsa.",
+						"issueDate": "Tanggal diterbitkan.",
+						"name": "Nama penerima.",
+						"status": "Status sertifikat (Publish/Revoke).",
+						"title": "Judul sertifikat."
+					}
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/Certificate.sol": "CertificateManager"
+		},
+		"evmVersion": "prague",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/Certificate.sol": {
+			"keccak256": "0x5221e829cc895ed419e382c1850ab02c4a21c92b4993676a92b353a8b4951c48",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://77422021f06d272fc0cab048415c25fa237b5d5f32b34b3f62f804d53acaa88b",
+				"dweb:/ipfs/QmWAf1P2mNVrXGrZaRAHYuF6jgvHmi67gxkqh2HdbA8UL5"
+			]
+		}
+	},
+	"version": 1
+}
