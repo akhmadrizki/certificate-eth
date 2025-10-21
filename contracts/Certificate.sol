@@ -9,36 +9,53 @@ contract CertificateManager {
     }
 
     // 2. STRUCTS
+    
+    // STRUCT BARU: Mewakili satu peserta
+    struct Participant {
+        string name;
+        uint256 nim;
+    }
+
+    // STRUCT UTAMA: Data Sertifikat
     struct Certificate {
         string title;
-        string name;
         uint256 issueDate;
         CertificateStatus status;
         uint256 expiredDate;
+        // Menyimpan array dari struct Participant
+        Participant[] participants; 
     }
 
     // 3. STATE VARIABLES
-    // Mapping: Menghubungkan Certificate ID (bytes32) ke Certificate struct
+    // Mapping 1: Menghubungkan Certificate ID (bytes32) ke Certificate struct
     mapping(bytes32 => Certificate) private certificates;
     
-    // Alamat deployer kontrak (hanya orang ini yang bisa menerbitkan sertifikat)
+    // Mapping 2: Menghubungkan NIM (uint256) ke Certificate ID (bytes32)
+    mapping(uint256 => bytes32) private nimToCertificateId; 
+    
+    // Alamat deployer kontrak
     address public owner;
 
     // 4. EVENTS
     // Event yang dipancarkan setelah sertifikat berhasil dibuat
-    event CertificateIssued(bytes32 indexed certificateId, string title, string recipientName, uint256 issueDate, uint256 expiredDate, address issuer);
+    event CertificateIssued(
+        bytes32 indexed certificateId, 
+        string title, 
+        uint256 issueDate, 
+        uint256 expiredDate, 
+        uint256 numberOfParticipants, 
+        address issuer
+    );
     
     // Event yang dipancarkan setelah status sertifikat diubah
     event CertificateStatusUpdated(bytes32 indexed certificateId, CertificateStatus newStatus, address updater);
 
     // 5. CONSTRUCTOR
-    // Fungsi yang dijalankan hanya sekali saat kontrak di-deploy
     constructor() {
         owner = msg.sender;
     }
 
     // 6. MODIFIER
-    // Pembatas agar hanya 'owner' yang bisa menjalankan fungsi ini
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can perform this action.");
         _;
@@ -47,56 +64,67 @@ contract CertificateManager {
     // 7. FUNCTIONS
 
     /**
-     * @dev Membuat ID unik dari nama penerima dan string acak (nonce)
-     * @param _recipientName Nama penerima sertifikat.
-     * @param _nonce String unik/acak untuk mencegah duplikasi.
-     * @return bytes32 ID sertifikat yang di-hash.
+     * @dev Membuat ID unik dari judul dan string acak (nonce)
      */
-    function generateCertificateId(string memory _recipientName, string memory _nonce) public pure returns (bytes32) {
-        // Keccak256 hashing digunakan untuk menghasilkan ID unik.
-        return keccak256(abi.encodePacked(_recipientName, _nonce));
+    function generateCertificateId(string memory _title, string memory _nonce) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_title, _nonce));
     }
 
     /**
-     * @dev Menerbitkan dan menyimpan sertifikat baru ke dalam blockchain.
-     * @param _certificateId ID sertifikat unik yang dihasilkan dari fungsi di atas.
-     * @param _title Judul sertifikat (contoh: "Workshop HTML").
-     * @param _recipientName Nama penerima.
-     * @param _expiredDate Tanggal kadaluarsa sertifikat (timestamp).
+     * @dev Menerbitkan dan menyimpan sertifikat baru dengan array peserta.
+     * MENGGUNAKAN LOOP MANUAL untuk menghindari UnimplementedFeatureError.
      */
     function issueCertificate(
         bytes32 _certificateId, 
         string memory _title, 
-        string memory _recipientName, 
+        Participant[] memory _participants,
         uint256 _expiredDate
     ) public onlyOwner {
-        // Cek apakah ID sudah ada
-        require(bytes(certificates[_certificateId].name).length == 0, "Certificate ID already exists.");
-        
+        // Cek apakah ID sertifikat sudah ada
+        require(bytes(certificates[_certificateId].title).length == 0, "Certificate ID already exists.");
+        // Pastikan ada peserta
+        require(_participants.length > 0, "At least one participant is required.");
         // Cek apakah expired date di masa depan
         require(_expiredDate > block.timestamp, "Expired date must be in the future.");
 
-        // Simpan data sertifikat
-        certificates[_certificateId] = Certificate({
-            title: _title,
-            name: _recipientName,
-            issueDate: block.timestamp,
-            status: CertificateStatus.Publish,
-            expiredDate: _expiredDate
-        });
+        // Inisialisasi referensi sertifikat baru di storage
+        Certificate storage newCert = certificates[_certificateId];
+        
+        // Simpan field dasar
+        newCert.title = _title;
+        newCert.issueDate = block.timestamp;
+        newCert.status = CertificateStatus.Publish;
+        newCert.expiredDate = _expiredDate;
+
+        // Iterasi dan simpan peserta (Solusi Non-viaIR)
+        for (uint i = 0; i < _participants.length; i++) {
+            uint256 currentNIM = _participants[i].nim;
+            
+            require(currentNIM != 0, "NIM cannot be zero.");
+            // Cek duplikasi NIM dalam batch yang sama (disarankan)
+            for (uint j = i + 1; j < _participants.length; j++) {
+                require(_participants[j].nim != currentNIM, "Duplicate NIM found in participants array.");
+            }
+            // Cek apakah NIM sudah terdaftar di mapping global
+            require(nimToCertificateId[currentNIM] == 0, "NIM/Random Number already registered with another certificate."); 
+            
+            // Simpan Participant ke array storage
+            newCert.participants.push(_participants[i]);
+            
+            // Daftarkan NIM ke ID sertifikat ini
+            nimToCertificateId[currentNIM] = _certificateId;
+        }
 
         // Pancarkan Event
-        emit CertificateIssued(_certificateId, _title, _recipientName, block.timestamp, _expiredDate, msg.sender);
+        emit CertificateIssued(_certificateId, _title, block.timestamp, _expiredDate, _participants.length, msg.sender);
     }
 
     /**
      * @dev Mengubah status sertifikat (hanya owner yang bisa).
-     * @param _certificateId ID sertifikat yang akan diubah statusnya.
-     * @param _newStatus Status baru (Publish atau Revoke).
      */
     function updateCertificateStatus(bytes32 _certificateId, CertificateStatus _newStatus) public onlyOwner {
         // Cek apakah sertifikat ada
-        require(bytes(certificates[_certificateId].name).length > 0, "Certificate does not exist.");
+        require(bytes(certificates[_certificateId].title).length > 0, "Certificate does not exist.");
         
         // Update status
         certificates[_certificateId].status = _newStatus;
@@ -104,64 +132,70 @@ contract CertificateManager {
         // Pancarkan Event
         emit CertificateStatusUpdated(_certificateId, _newStatus, msg.sender);
     }
-
+    
     /**
-     * @dev Memverifikasi keberadaan sertifikat dan mengembalikan data lengkap. (Fungsi READ ONLY)
-     * @param _certificateId ID sertifikat yang akan diverifikasi.
-     * @return title Judul sertifikat.
-     * @return name Nama penerima.
-     * @return issueDate Tanggal diterbitkan.
-     * @return status Status sertifikat (Publish/Revoke).
-     * @return expiredDate Tanggal kadaluarsa.
-     * @return isValid True jika sertifikat valid dan belum kadaluarsa.
+     * @dev Memverifikasi keberadaan sertifikat berdasarkan NIM/Angka Unik. (Fungsi READ ONLY)
      */
-    function verifyCertificate(bytes32 _certificateId) public view returns (
+    function verifyCertificateByNIM(uint256 _nimOrRandomNumber) public view returns (
         string memory title,
-        string memory name,
         uint256 issueDate,
         CertificateStatus status,
         uint256 expiredDate,
+        string memory participantName,
         bool isValid
     ) {
-        Certificate memory cert = certificates[_certificateId];
-        
-        // Cek apakah sertifikat ada
-        if (bytes(cert.name).length == 0) {
-            return ("", "", 0, CertificateStatus.Publish, 0, false);
+        // Dapatkan ID sertifikat dari NIM
+        bytes32 certId = nimToCertificateId[_nimOrRandomNumber];
+
+        // Cek apakah NIM terdaftar / sertifikat ada
+        if (certId == 0) {
+            return ("", 0, CertificateStatus.Publish, 0, "", false);
         }
+        
+        // Menggunakan 'storage' untuk menghindari biaya gas berlebihan saat menyalin array besar
+        Certificate storage cert = certificates[certId]; 
         
         // Cek apakah sertifikat masih valid (belum kadaluarsa dan status Publish)
         bool isNotExpired = cert.expiredDate > block.timestamp;
         bool isPublished = cert.status == CertificateStatus.Publish;
+
+        // Cari nama peserta yang sesuai dengan NIM (memerlukan loop)
+        string memory foundName = "";
+        for(uint i = 0; i < cert.participants.length; i++) {
+            if (cert.participants[i].nim == _nimOrRandomNumber) {
+                foundName = cert.participants[i].name;
+                break;
+            }
+        }
         
         return (
             cert.title,
-            cert.name,
             cert.issueDate,
             cert.status,
             cert.expiredDate,
+            foundName,
             isNotExpired && isPublished
         );
     }
 
     /**
      * @dev Mendapatkan data sertifikat lengkap berdasarkan ID. (Fungsi READ ONLY)
-     * @param _certificateId ID sertifikat.
-     * @return title Judul sertifikat.
-     * @return name Nama penerima.
-     * @return issueDate Tanggal diterbitkan.
-     * @return status Status sertifikat.
-     * @return expiredDate Tanggal kadaluarsa.
      */
     function getCertificate(bytes32 _certificateId) public view returns (
         string memory title,
-        string memory name,
         uint256 issueDate,
         CertificateStatus status,
-        uint256 expiredDate
+        uint256 expiredDate,
+        Participant[] memory participants
     ) {
-        require(bytes(certificates[_certificateId].name).length > 0, "Certificate does not exist.");
-        Certificate memory cert = certificates[_certificateId];
-        return (cert.title, cert.name, cert.issueDate, cert.status, cert.expiredDate);
+        // Cek apakah sertifikat ada (menggunakan title sebagai penanda)
+        require(bytes(certificates[_certificateId].title).length > 0, "Certificate does not exist.");
+        
+        // Menggunakan 'storage' untuk mengakses data
+        Certificate storage cert = certificates[_certificateId];
+        
+        // Catatan: Compiler modern (0.8.0+) dapat mengembalikan array dari storage ke memory,
+        // tetapi fungsi ini akan mahal jika arraynya sangat besar.
+        return (cert.title, cert.issueDate, cert.status, cert.expiredDate, cert.participants);
     }
 }
